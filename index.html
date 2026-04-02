@@ -491,10 +491,20 @@
     localStorage.setItem('wrc_count', reminderCount.toString());
     statCount.textContent = reminderCount;
 
+    // --- MULAI EFEK WOW ---
+    // 1. Putar suara air
+    const sound = document.getElementById('waterSound');
+    sound.currentTime = 0;
+    sound.play().catch((e) => console.log('Suara diblokir browser jika belum ada interaksi', e));
+
+    // 2. Efek layar bergetar dan flash biru
+    document.body.classList.add('splash-active');
+    setTimeout(() => document.body.classList.remove('splash-active'), 2000);
+    // --- SELESAI EFEK WOW ---
+
     if (swReg && swReg.active) {
       swReg.active.postMessage({ type: 'SHOW_NOTIFICATION' });
     } else if ('Notification' in window && Notification.permission === 'granted') {
-      // Fallback jika SW belum siap
       const msgs = [
         '💧 Waktunya minum air! Tubuhmu butuh hidrasi sekarang.',
         '🌊 Sudah 1 jam! Segera minum air putih ya.',
@@ -503,7 +513,7 @@
       new Notification('Pengingat Minum Air 💧', {
         body: msgs[Math.floor(Math.random() * msgs.length)],
         icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><text y='52' font-size='56'>💧</text></svg>",
-        vibrate: [500, 200, 500, 200, 500], // FIX: Getaran di-update
+        vibrate: [500, 200, 500, 200, 500],
         tag: 'water-reminder',
         renotify: true,
       });
