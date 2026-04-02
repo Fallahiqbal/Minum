@@ -436,7 +436,7 @@
   let nextFireTime = null;     // timestamp kapan notif berikutnya
   let swReg = null;            // ServiceWorker registration
   let reminderCount = parseInt(localStorage.getItem('wrc_count') || '0', 10);
-  const INTERVAL_MS = 60 * 60 * 1000; // 1 jam
+  const INTERVAL_MS = 60; // 1 jam
 
   // ── DOM refs ───────────────────────────────────────────────────────────────
   const toggleBtn    = document.getElementById('toggleBtn');
