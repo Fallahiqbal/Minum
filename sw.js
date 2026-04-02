@@ -1,7 +1,7 @@
 // sw.js — Service Worker untuk Water Reminder PWA
 
 // FIX: Naikkan versi cache agar browser mau download ulang aset baru
-const CACHE_NAME = 'water-reminder-v8';
+const CACHE_NAME = 'water-reminder-v9';
 
 // FIX: Ganti semua slash `/` menjadi relative `./` agar tidak nyasar ke root github.io
 const ASSETS = ['./', './index.html', './manifest.json'];
