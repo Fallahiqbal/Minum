@@ -1,6 +1,10 @@
 // sw.js — Service Worker untuk Water Reminder PWA
-const CACHE_NAME = 'water-reminder-v5';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+
+// FIX: Naikkan versi cache agar browser mau download ulang aset baru
+const CACHE_NAME = 'water-reminder-v6';
+
+// FIX: Ganti semua slash `/` menjadi relative `./` agar tidak nyasar ke root github.io
+const ASSETS = ['./', './index.html', './manifest.json'];
 
 // ─── Install: cache semua aset ───────────────────────────────────────────────
 self.addEventListener('install', (event) => {
@@ -43,8 +47,13 @@ self.addEventListener('message', (event) => {
       body: randomMsg,
       icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><text y='52' font-size='56'>💧</text></svg>",
       badge: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><text y='52' font-size='56'>💧</text></svg>",
-      vibrate: [200, 100, 200],
-      requireInteraction: false,
+      
+      // FIX: Pola getaran diperkuat (500ms nyala, 200ms mati)
+      vibrate: [500, 200, 500, 200, 500],
+      
+      // FIX: Tambahkan requireInteraction agar notif tidak hilang sebelum di-swipe/klik
+      requireInteraction: true,
+      
       silent: false,
       tag: 'water-reminder',
       renotify: true,
@@ -59,7 +68,9 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
       if (clients.length > 0) return clients[0].focus();
-      return self.clients.openWindow('/');
+      
+      // FIX: openWindow pakai path relative
+      return self.clients.openWindow('./');
     })
   );
 });
