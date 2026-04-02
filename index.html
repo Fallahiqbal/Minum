@@ -358,10 +358,33 @@
       width: 1px; height: 30px;
       background: rgba(168,216,240,0.15);
     }
+
+    /* ── WOW Effects ───────────────────────────────────────────── */
+    .flash-overlay {
+      position: fixed; inset: 0; background: rgba(79,163,227,0.7);
+      z-index: 999; pointer-events: none; opacity: 0; 
+    }
+    .splash-active {
+      animation: screenShake 0.5s ease-in-out;
+    }
+    .splash-active .flash-overlay {
+      animation: flashFade 2s forwards;
+    }
+    @keyframes screenShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-10px) rotate(-2deg); }
+      40%, 80% { transform: translateX(10px) rotate(2deg); }
+    }
+    @keyframes flashFade {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    
   </style>
 </head>
 <body>
-
+<div class="flash-overlay" id="flashOverlay"></div>
+<audio id="waterSound" src="https://actions.google.com/sounds/v1/water/glass_water.ogg" preload="auto"></audio>
 <div class="bg">
   <div class="bubble"></div>
   <div class="bubble"></div>
