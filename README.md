@@ -15,7 +15,7 @@ PWA sederhana untuk mengingatkan minum air setiap 1 jam sekali. Bisa diinstall l
 > Pastikan menggunakan **Chrome** — browser lain belum tentu mendukung PWA + notifikasi.
 
 **Install ke Home Screen:**
-1. Buka URL app di Chrome Android
+1. Buka URL app (https://fallahiqbal.github.io/Minum/) di Chrome Android
 2. Ketuk **⋮** (pojok kanan atas) → **Tambahkan ke layar utama**
 3. Ketuk **Tambahkan** pada dialog konfirmasi
 4. Ikon 💧 akan muncul di home screen seperti app biasa
