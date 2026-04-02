@@ -429,3 +429,152 @@
   let nextFireTime = null;     // timestamp kapan notif berikutnya
   let swReg = null;            // ServiceWorker registration
   let reminderCount = parseInt(localStorage.getItem('wrc_count') || '0', 10);
+  // const INTERVAL_MS =  60 * 60 * 1000; // 1 jam
+  const INTERVAL_MS =  60 * 1000; // 1 menit (60 detik x 1000 milidetik)
+
+  // ── DOM refs ───────────────────────────────────────────────────────────────
+  const toggleBtn    = document.getElementById('toggleBtn');
+  const toggleEmoji  = document.getElementById('toggleEmoji');
+  const toggleLabel  = document.getElementById('toggleLabel');
+  const statusBadge  = document.getElementById('statusBadge');
+  const statusText   = document.getElementById('statusText');
+  const countdownWrap= document.getElementById('countdownWrap');
+  const cdMin        = document.getElementById('cdMin');
+  const cdSec        = document.getElementById('cdSec');
+  const notice       = document.getElementById('notice');
+  const statCount    = document.getElementById('statCount');
+
+  // Reset count at midnight
+  const lastDate = localStorage.getItem('wrc_date');
+  const today    = new Date().toDateString();
+  if (lastDate !== today) {
+    reminderCount = 0;
+    localStorage.setItem('wrc_date', today);
+    localStorage.setItem('wrc_count', '0');
+  }
+  statCount.textContent = reminderCount;
+
+  // ── Service Worker registration ────────────────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    // FIX: Ubah path menjadi relative ./
+    navigator.serviceWorker.register('./sw.js')
+      .then((reg) => { swReg = reg; console.log('[SW] Registered'); })
+      .catch((err) => console.warn('[SW] Failed:', err));
+  }
+
+  // ── Show notification via SW ───────────────────────────────────────────────
+  function fireNotification() {
+    reminderCount++;
+    localStorage.setItem('wrc_count', reminderCount.toString());
+    statCount.textContent = reminderCount;
+
+    if (swReg && swReg.active) {
+      swReg.active.postMessage({ type: 'SHOW_NOTIFICATION' });
+    } else if ('Notification' in window && Notification.permission === 'granted') {
+      // Fallback jika SW belum siap
+      const msgs = [
+        '💧 Waktunya minum air! Tubuhmu butuh hidrasi sekarang.',
+        '🌊 Sudah 1 jam! Segera minum air putih ya.',
+        '💦 Jangan lupa minum air! Tetap terhidrasi.',
+      ];
+      new Notification('Pengingat Minum Air 💧', {
+        body: msgs[Math.floor(Math.random() * msgs.length)],
+        icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><text y='52' font-size='56'>💧</text></svg>",
+        vibrate: [500, 200, 500, 200, 500], // FIX: Getaran di-update
+        tag: 'water-reminder',
+        renotify: true,
+      });
+    }
+  }
+
+  // ── Countdown tick ─────────────────────────────────────────────────────────
+  function tickCountdown() {
+    if (!nextFireTime) return;
+    const remaining = Math.max(0, nextFireTime - Date.now());
+    const totalSec  = Math.floor(remaining / 1000);
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    cdMin.textContent = String(mins).padStart(2, '0');
+    cdSec.textContent = String(secs).padStart(2, '0');
+  }
+
+  // ── Start reminder ─────────────────────────────────────────────────────────
+  function startReminder() {
+    nextFireTime = Date.now() + INTERVAL_MS;
+    tickCountdown();
+    countdownId = setInterval(tickCountdown, 1000);
+    intervalId  = setInterval(() => {
+      fireNotification();
+      nextFireTime = Date.now() + INTERVAL_MS;
+    }, INTERVAL_MS);
+  }
+
+  // ── Stop reminder ──────────────────────────────────────────────────────────
+  function stopReminder() {
+    clearInterval(intervalId);
+    clearInterval(countdownId);
+    intervalId = countdownId = nextFireTime = null;
+  }
+
+  // ── Update UI ──────────────────────────────────────────────────────────────
+  function setUIState(on) {
+    toggleBtn.classList.toggle('is-on', on);
+    toggleBtn.setAttribute('aria-pressed', on);
+    statusBadge.classList.toggle('is-on',  on);
+    statusBadge.classList.toggle('is-off', !on);
+    statusText.textContent  = on ? 'Aktif' : 'Nonaktif';
+    toggleEmoji.textContent = on ? '💧' : '🔔';
+    toggleLabel.textContent = on ? 'Ketuk untuk menonaktifkan' : 'Ketuk untuk mengaktifkan';
+    countdownWrap.classList.toggle('hidden', !on);
+  }
+
+  // ── Main toggle handler ────────────────────────────────────────────────────
+  toggleBtn.addEventListener('click', async () => {
+    if (!isOn) {
+      // Request notification permission
+      if (!('Notification' in window)) {
+        notice.textContent = '⚠️ Browser tidak mendukung notifikasi.';
+        notice.classList.add('show');
+        return;
+      }
+
+      let perm = Notification.permission;
+      if (perm === 'default') {
+        perm = await Notification.requestPermission();
+      }
+      if (perm !== 'granted') {
+        notice.classList.add('show');
+        setTimeout(() => notice.classList.remove('show'), 5000);
+        return;
+      }
+
+      notice.classList.remove('show');
+      isOn = true;
+      setUIState(true);
+      startReminder();
+
+    } else {
+      isOn = false;
+      setUIState(false);
+      stopReminder();
+    }
+  });
+
+  // ── Page Visibility: pause/resume countdown display ────────────────────────
+  document.addEventListener('visibilitychange', () => {
+    if (!isOn) return;
+    if (document.hidden) {
+      // App di background — interval tetap jalan, hanya pause countdown display
+      clearInterval(countdownId);
+    } else {
+      // App kembali ke foreground
+      tickCountdown();
+      countdownId = setInterval(tickCountdown, 1000);
+    }
+  });
+
+  // ── Restore state on reload (optional) ────────────────────────────────────
+  // Tidak auto-restore ON untuk keamanan; user harus tap lagi
+</script>
+</body>
+</html>
