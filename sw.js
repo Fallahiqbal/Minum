@@ -1,5 +1,5 @@
 // Naikkan versi cache agar HP men-download ulang!
-const CACHE_NAME = 'water-reminder-v8';
+const CACHE_NAME = 'water-reminder-v12';
 const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', (event) => {
