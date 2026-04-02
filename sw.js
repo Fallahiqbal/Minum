@@ -1,20 +1,12 @@
-// sw.js — Service Worker untuk Water Reminder PWA
-
-// FIX: Naikkan versi cache agar browser mau download ulang aset baru
-const CACHE_NAME = 'water-reminder-v9';
-
-// FIX: Ganti semua slash `/` menjadi relative `./` agar tidak nyasar ke root github.io
+// Naikkan versi cache agar HP men-download ulang!
+const CACHE_NAME = 'water-reminder-v8';
 const ASSETS = ['./', './index.html', './manifest.json'];
 
-// ─── Install: cache semua aset ───────────────────────────────────────────────
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
   self.skipWaiting();
 });
 
-// ─── Activate: hapus cache lama ──────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -24,22 +16,15 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// ─── Fetch: sajikan dari cache (offline-first) ────────────────────────────────
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
-  );
+  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
 });
 
-// ─── Message: terima perintah dari halaman utama ──────────────────────────────
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
     const messages = [
       '💧 Waktunya minum air! Tubuhmu butuh hidrasi sekarang.',
       '🌊 Sudah 1 jam! Segera minum air putih ya.',
-      '💦 Jangan lupa minum air! Tetap terhidrasi itu penting.',
-      '🫧 Ping! Saatnya minum air agar tetap sehat & fokus.',
-      '💧 Reminder: Minum 1 gelas air sekarang!',
     ];
     const randomMsg = messages[Math.floor(Math.random() * messages.length)];
 
@@ -47,29 +32,32 @@ self.addEventListener('message', (event) => {
       body: randomMsg,
       icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><text y='52' font-size='56'>💧</text></svg>",
       badge: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><text y='52' font-size='56'>💧</text></svg>",
-      
-      // FIX: Pola getaran diperkuat (500ms nyala, 200ms mati)
       vibrate: [500, 200, 500, 200, 500],
-      
-      // FIX: Tambahkan requireInteraction agar notif tidak hilang sebelum di-swipe/klik
       requireInteraction: true,
-      
-      silent: false,
       tag: 'water-reminder',
       renotify: true,
-      data: { timestamp: Date.now() },
+      // INI EFEK WOW-NYA: Tambahan tombol interaktif di notifikasi Android
+      actions: [
+        { action: 'minum_ok', title: '✅ Sudah Minum!' }
+      ]
     });
   }
 });
 
-// ─── NotificationClick: buka app saat notif diklik ───────────────────────────
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+
+  // Logika jika tombol "Sudah Minum!" ditekan
+  if (event.action === 'minum_ok') {
+    console.log('User sudah minum dari tombol notifikasi');
+    // Karena ini PWA sederhana, kita cukup menutup notifikasinya saja.
+    return;
+  }
+
+  // Jika notifikasinya di-tap di area biasa, buka aplikasinya
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
       if (clients.length > 0) return clients[0].focus();
-      
-      // FIX: openWindow pakai path relative
       return self.clients.openWindow('./');
     })
   );
