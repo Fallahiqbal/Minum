@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a1628" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Minum Air" />
+  <meta name="description" content="Pengingat minum air setiap 1 jam sekali" />
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet" />
+
+  <title>Pengingat Minum Air</title>
+
+  <style>
+    /* ── Variables ─────────────────────────────────────────────── */
+    :root {
+      --deep:    #040d1a;
+      --ocean:   #0a1628;
+      --mid:     #0f2244;
+      --surface: #1a3a6e;
+      --foam:    #2a5298;
+      --glow:    #4fa3e3;
+      --light:   #a8d8f0;
+      --white:   #e8f4fd;
+
+      --on-from: #00b4d8;
+      --on-to:   #0077b6;
+      --off-from: #1e2a3a;
+      --off-to:  #0a1628;
+
+      --radius-pill: 100px;
+      --transition: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* ── Reset & Base ──────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: 'DM Mono', monospace;
+      background: var(--deep);
+      color: var(--white);
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    /* ── Animated background ───────────────────────────────────── */
+    .bg {
+      position: fixed; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse 120% 80% at 50% 110%, #0a2d5a 0%, #040d1a 60%);
+      overflow: hidden;
+    }
+
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, rgba(79,163,227,0.18), rgba(10,22,40,0));
+      animation: rise linear infinite;
+      pointer-events: none;
+    }
+
+    .bubble:nth-child(1)  { width: 80px;  height: 80px;  left: 12%;  animation-duration: 12s; animation-delay: 0s;    bottom: -100px; }
+    .bubble:nth-child(2)  { width: 40px;  height: 40px;  left: 30%;  animation-duration: 9s;  animation-delay: 2s;    bottom: -100px; }
+    .bubble:nth-child(3)  { width: 120px; height: 120px; left: 55%;  animation-duration: 15s; animation-delay: 4s;    bottom: -100px; }
+    .bubble:nth-child(4)  { width: 30px;  height: 30px;  left: 75%;  animation-duration: 8s;  animation-delay: 1s;    bottom: -100px; }
+    .bubble:nth-child(5)  { width: 60px;  height: 60px;  left: 88%;  animation-duration: 11s; animation-delay: 5s;    bottom: -100px; }
+    .bubble:nth-child(6)  { width: 50px;  height: 50px;  left: 5%;   animation-duration: 13s; animation-delay: 3s;    bottom: -100px; }
+    .bubble:nth-child(7)  { width: 90px;  height: 90px;  left: 42%;  animation-duration: 14s; animation-delay: 7s;    bottom: -100px; }
+
+    @keyframes rise {
+      0%   { transform: translateY(0) scale(1);    opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 0.6; }
+      100% { transform: translateY(-110vh) scale(1.4); opacity: 0; }
+    }
+
+    /* Shimmer wave on the bottom */
+    .wave {
+      position: fixed;
+      bottom: -10px; left: -10%; width: 120%;
+      height: 160px;
+      border-radius: 50% 50% 0 0 / 40px 40px 0 0;
+      background: linear-gradient(180deg, rgba(79,163,227,0.06) 0%, rgba(10,22,40,0) 100%);
+      animation: waveSway 8s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .wave:nth-child(2) { animation-delay: -3s; opacity: 0.5; height: 120px; }
+
+    @keyframes waveSway {
+      0%,100% { transform: translateX(0); }
+      50%      { transform: translateX(3%); }
+    }
+
+    /* ── Layout ────────────────────────────────────────────────── */
+    .app {
+      position: relative; z-index: 1;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      padding: env(safe-area-inset-top, 24px) 24px env(safe-area-inset-bottom, 24px);
+    }
+
+    /* ── Drop icon ─────────────────────────────────────────────── */
+    .drop-icon {
+      font-size: 72px;
+      line-height: 1;
+      animation: floatDrop 4s ease-in-out infinite;
+      filter: drop-shadow(0 0 20px rgba(79,163,227,0.5));
+      margin-bottom: 28px;
+    }
+    @keyframes floatDrop {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-10px); }
+    }
+
+    /* ── Title ─────────────────────────────────────────────────── */
+    .title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(28px, 8vw, 42px);
+      font-weight: 300;
+      letter-spacing: 0.05em;
+      color: var(--white);
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: rgba(168,216,240,0.5);
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    /* ── Status badge ──────────────────────────────────────────── */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-weight: 400;
+      transition: all 0.4s ease;
+      margin-bottom: 40px;
+      border: 1px solid;
+    }
+
+    .status-badge.is-on {
+      background: rgba(79,163,227,0.15);
+      border-color: rgba(79,163,227,0.4);
+      color: var(--glow);
+    }
+    .status-badge.is-off {
+      background: rgba(255,255,255,0.04);
+      border-color: rgba(255,255,255,0.1);
+      color: rgba(168,216,240,0.4);
+    }
+
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      transition: all 0.4s ease;
+    }
+    .is-on .dot {
+      background: var(--glow);
+      box-shadow: 0 0 8px var(--glow);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .is-off .dot { background: rgba(168,216,240,0.3); }
+
+    @keyframes pulse {
+      0%,100% { opacity: 1;   transform: scale(1); }
+      50%      { opacity: 0.5; transform: scale(0.7); }
+    }
+
+    /* ── Toggle ────────────────────────────────────────────────── */
+    .toggle-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .toggle-btn {
+      position: relative;
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      outline: none;
+      background: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Outer ring glow */
+    .toggle-btn::before {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, var(--on-from), var(--on-to), var(--on-from));
+      opacity: 0;
+      transition: opacity var(--transition);
+      animation: spinRing 4s linear infinite;
+    }
+    .toggle-btn.is-on::before { opacity: 1; }
+
+    @keyframes spinRing {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Inner circle */
+    .toggle-inner {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 44px;
+      transition: background var(--transition), box-shadow var(--transition), transform 0.15s;
+      background: var(--mid);
+      border: 2px solid rgba(79,163,227,0.15);
+    }
+
+    .toggle-btn.is-on .toggle-inner {
+      background: radial-gradient(circle at 40% 35%, var(--on-from), var(--on-to));
+      box-shadow:
+        0 0 0 4px rgba(0,180,216,0.2),
+        0 0 40px rgba(0,180,216,0.4),
+        0 0 80px rgba(0,180,216,0.2),
+        inset 0 2px 4px rgba(255,255,255,0.2);
+      border-color: transparent;
+    }
+
+    .toggle-btn:active .toggle-inner {
+      transform: scale(0.94);
+    }
+
+    /* Ripple on click */
+    .ripple {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .ripple::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid var(--glow);
+      opacity: 0;
+    }
+    .toggle-btn.is-on .ripple::after {
+      animation: rippleOut 2s ease-out infinite 0.5s;
+    }
+    @keyframes rippleOut {
+      0%   { inset: 0;     opacity: 0.6; }
+      100% { inset: -28px; opacity: 0; }
+    }
+
+    .toggle-label {
+      font-size: 11px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: rgba(168,216,240,0.5);
+      transition: color 0.4s;
+    }
+    .toggle-btn.is-on ~ .toggle-label { color: var(--light); }
+
+    /* ── Countdown ─────────────────────────────────────────────── */
+    .countdown-wrap {
+      margin-top: 52px;
+      text-align: center;
+      min-height: 60px;
+      transition: opacity 0.4s;
+    }
+    .countdown-wrap.hidden { opacity: 0; pointer-events: none; }
+
+    .countdown-label {
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: rgba(168,216,240,0.4);
+      margin-bottom: 8px;
+    }
+
+    .countdown-time {
+      font-family: 'DM Mono', monospace;
+      font-size: 38px;
+      font-weight: 300;
+      color: var(--light);
+      letter-spacing: 0.05em;
+      text-shadow: 0 0 20px rgba(79,163,227,0.4);
+    }
+
+    .countdown-time span.sep { opacity: 0.4; animation: blink 1s step-end infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ── Permission notice ─────────────────────────────────────── */
+    .notice {
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom, 24px) + 12px);
+      left: 50%; transform: translateX(-50%);
+      background: rgba(255,100,100,0.15);
+      border: 1px solid rgba(255,100,100,0.3);
+      color: #ff9999;
+      padding: 10px 20px;
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      text-align: center;
+      letter-spacing: 0.1em;
+      display: none;
+      white-space: nowrap;
+      z-index: 10;
+    }
+    .notice.show { display: block; }
+
+    /* ── Stats pill ────────────────────────────────────────────── */
+    .stats {
+      margin-top: 32px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+    .stat-item {
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--glow);
+      text-shadow: 0 0 12px rgba(79,163,227,0.4);
+    }
+    .stat-text {
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(168,216,240,0.35);
+      margin-top: 2px;
+    }
+    .stat-div {
+      width: 1px; height: 30px;
+      background: rgba(168,216,240,0.15);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Animated background -->
+<div class="bg">
+  <div class="bubble"></div>
+  <div class="bubble"></div>
+  <div class="bubble"></div>
+  <div class="bubble"></div>
+  <div class="bubble"></div>
+  <div class="bubble"></div>
+  <div class="bubble"></div>
+  <div class="wave"></div>
+  <div class="wave"></div>
+</div>
+
+<!-- Main App -->
+<main class="app">
+
+  <div class="drop-icon">💧</div>
+
+  <h1 class="title">Pengingat Minum Air</h1>
+  <p class="subtitle">setiap 1 jam sekali</p>
+
+  <!-- Status badge -->
+  <div class="status-badge is-off" id="statusBadge">
+    <span class="dot"></span>
+    <span id="statusText">Nonaktif</span>
+  </div>
+
+  <!-- Toggle + Label -->
+  <div class="toggle-wrap">
+    <button class="toggle-btn" id="toggleBtn" aria-label="Toggle pengingat" aria-pressed="false">
+      <span class="ripple"></span>
+      <span class="toggle-inner">
+        <span id="toggleEmoji">🔔</span>
+      </span>
+    </button>
+    <span class="toggle-label" id="toggleLabel">Ketuk untuk mengaktifkan</span>
+  </div>
+
+  <!-- Countdown timer -->
+  <div class="countdown-wrap hidden" id="countdownWrap">
+    <p class="countdown-label">Pengingat berikutnya dalam</p>
+    <div class="countdown-time">
+      <span id="cdMin">59</span><span class="sep">:</span><span id="cdSec">60</span>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats" id="statsWrap">
+    <div class="stat-item">
+      <div class="stat-num" id="statCount">0</div>
+      <div class="stat-text">Pengingat hari ini</div>
+    </div>
+    <div class="stat-div"></div>
+    <div class="stat-item">
+      <div class="stat-num" id="statTarget">8</div>
+      <div class="stat-text">Target gelas / hari</div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Permission denied notice -->
+<div class="notice" id="notice">
+  ⚠️ Izin notifikasi ditolak. Buka Pengaturan > Izin Aplikasi.
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  let isOn = false;
+  let intervalId = null;       // setInterval handle (1 jam)
+  let countdownId = null;      // setInterval handle (countdown tick)
+  let nextFireTime = null;     // timestamp kapan notif berikutnya
+  let swReg = null;            // ServiceWorker registration
+  let reminderCount = parseInt(localStorage.getItem('wrc_count') || '0', 10);
+  const INTERVAL_MS = 60 * 60 * 1000; // 1 jam
+
+  // ── DOM refs ───────────────────────────────────────────────────────────────
+  const toggleBtn    = document.getElementById('toggleBtn');
+  const toggleEmoji  = document.getElementById('toggleEmoji');
+  const toggleLabel  = document.getElementById('toggleLabel');
+  const statusBadge  = document.getElementById('statusBadge');
+  const statusText   = document.getElementById('statusText');
+  const countdownWrap= document.getElementById('countdownWrap');
+  const cdMin        = document.getElementById('cdMin');
+  const cdSec        = document.getElementById('cdSec');
+  const notice       = document.getElementById('notice');
+  const statCount    = document.getElementById('statCount');
+
+  // Reset count at midnight
+  const lastDate = localStorage.getItem('wrc_date');
+  const today    = new Date().toDateString();
+  if (lastDate !== today) {
+    reminderCount = 0;
+    localStorage.setItem('wrc_date', today);
+    localStorage.setItem('wrc_count', '0');
+  }
+  statCount.textContent = reminderCount;
+
+  // ── Service Worker registration ────────────────────────────────────────────
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then((reg) => { swReg = reg; console.log('[SW] Registered'); })
+      .catch((err) => console.warn('[SW] Failed:', err));
+  }
+
+  // ── Show notification via SW ───────────────────────────────────────────────
+  function fireNotification() {
+    reminderCount++;
+    localStorage.setItem('wrc_count', reminderCount.toString());
+    statCount.textContent = reminderCount;
+
+    if (swReg && swReg.active) {
+      swReg.active.postMessage({ type: 'SHOW_NOTIFICATION' });
+    } else if ('Notification' in window && Notification.permission === 'granted') {
+      // Fallback jika SW belum siap
+      const msgs = [
+        '💧 Waktunya minum air! Tubuhmu butuh hidrasi sekarang.',
+        '🌊 Sudah 1 jam! Segera minum air putih ya.',
+        '💦 Jangan lupa minum air! Tetap terhidrasi.',
+      ];
+      new Notification('Pengingat Minum Air 💧', {
+        body: msgs[Math.floor(Math.random() * msgs.length)],
+        icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><text y='52' font-size='56'>💧</text></svg>",
+        vibrate: [200, 100, 200],
+        tag: 'water-reminder',
+        renotify: true,
+      });
+    }
+  }
+
+  // ── Countdown tick ─────────────────────────────────────────────────────────
+  function tickCountdown() {
+    if (!nextFireTime) return;
+    const remaining = Math.max(0, nextFireTime - Date.now());
+    const totalSec  = Math.floor(remaining / 1000);
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    cdMin.textContent = String(mins).padStart(2, '0');
+    cdSec.textContent = String(secs).padStart(2, '0');
+  }
+
+  // ── Start reminder ─────────────────────────────────────────────────────────
+  function startReminder() {
+    nextFireTime = Date.now() + INTERVAL_MS;
+    tickCountdown();
+    countdownId = setInterval(tickCountdown, 1000);
+    intervalId  = setInterval(() => {
+      fireNotification();
+      nextFireTime = Date.now() + INTERVAL_MS;
+    }, INTERVAL_MS);
+  }
+
+  // ── Stop reminder ──────────────────────────────────────────────────────────
+  function stopReminder() {
+    clearInterval(intervalId);
+    clearInterval(countdownId);
+    intervalId = countdownId = nextFireTime = null;
+  }
+
+  // ── Update UI ──────────────────────────────────────────────────────────────
+  function setUIState(on) {
+    toggleBtn.classList.toggle('is-on', on);
+    toggleBtn.setAttribute('aria-pressed', on);
+    statusBadge.classList.toggle('is-on',  on);
+    statusBadge.classList.toggle('is-off', !on);
+    statusText.textContent  = on ? 'Aktif' : 'Nonaktif';
+    toggleEmoji.textContent = on ? '💧' : '🔔';
+    toggleLabel.textContent = on ? 'Ketuk untuk menonaktifkan' : 'Ketuk untuk mengaktifkan';
+    countdownWrap.classList.toggle('hidden', !on);
+  }
+
+  // ── Main toggle handler ────────────────────────────────────────────────────
+  toggleBtn.addEventListener('click', async () => {
+    if (!isOn) {
+      // Request notification permission
+      if (!('Notification' in window)) {
+        notice.textContent = '⚠️ Browser tidak mendukung notifikasi.';
+        notice.classList.add('show');
+        return;
+      }
+
+      let perm = Notification.permission;
+      if (perm === 'default') {
+        perm = await Notification.requestPermission();
+      }
+      if (perm !== 'granted') {
+        notice.classList.add('show');
+        setTimeout(() => notice.classList.remove('show'), 5000);
+        return;
+      }
+
+      notice.classList.remove('show');
+      isOn = true;
+      setUIState(true);
+      startReminder();
+
+    } else {
+      isOn = false;
+      setUIState(false);
+      stopReminder();
+    }
+  });
+
+  // ── Page Visibility: pause/resume countdown display ────────────────────────
+  document.addEventListener('visibilitychange', () => {
+    if (!isOn) return;
+    if (document.hidden) {
+      // App di background — interval tetap jalan, hanya pause countdown display
+      clearInterval(countdownId);
+    } else {
+      // App kembali ke foreground
+      tickCountdown();
+      countdownId = setInterval(tickCountdown, 1000);
+    }
+  });
+
+  // ── Restore state on reload (optional) ────────────────────────────────────
+  // Tidak auto-restore ON untuk keamanan; user harus tap lagi
+</script>
+</body>
+</html>
