@@ -1,5 +1,5 @@
 // sw.js — Service Worker untuk Water Reminder PWA
-const CACHE_NAME = 'water-reminder-v1';
+const CACHE_NAME = 'water-reminder-v3';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 // ─── Install: cache semua aset ───────────────────────────────────────────────
